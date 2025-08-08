@@ -1,0 +1,12 @@
+# Ignore data & models
+data/raw/*
+data/processed/*
+models/*
+*.joblib
+*.pkl
+
+# Ignore system files
+.DS_Store
+
+# Ignore Jupyter checkpoints
+.ipynb_checkpoints/

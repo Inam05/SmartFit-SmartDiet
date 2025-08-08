@@ -1,0 +1,23 @@
+# Core data handling
+pandas==2.2.2
+numpy==1.26.4
+
+# Visualization
+matplotlib==3.9.0
+seaborn==0.13.2
+plotly==5.24.0
+
+# Machine learning
+scikit-learn==1.5.1
+xgboost==2.1.1
+lightgbm==4.5.0
+
+# Model saving/loading
+joblib==1.4.2
+
+# App deployment
+streamlit==1.38.0
+
+# Optional but recommended
+tqdm==4.66.5        # progress bars
+scipy==1.14.1       # some ML algorithms require it
