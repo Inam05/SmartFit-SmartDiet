@@ -6,6 +6,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
+from sklearn.impute import SimpleImputer
 import joblib
 import argparse
 import os
@@ -17,9 +18,14 @@ def load_data(path):
 def preprocess_features(df):
     non_feature_cols = ['subject_id', 'session_type', 'window_start', 'window_end', 'activity']
     X = df.drop(columns=non_feature_cols)
+
+    # Impute missing values with mean strategy
+    imputer = SimpleImputer(strategy='mean')
+    X_imputed = imputer.fit_transform(X)
+
     scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-    return X_scaled, scaler, X.columns
+    X_scaled = scaler.fit_transform(X_imputed)
+    return X_scaled, scaler, imputer, X.columns
 
 def find_best_k(X_scaled, k_range=range(2,11)):
     best_k = None
@@ -44,11 +50,9 @@ def plot_elbow_silhouette(scores, output_dir):
     k_values, sil_scores = zip(*scores)
     fig, ax1 = plt.subplots(figsize=(10,5))
 
-    color = 'tab:green'
-    ax1.plot(k_values, sil_scores, marker='o', color=color)
+    ax1.plot(k_values, sil_scores, marker='o', color='tab:green')
     ax1.set_xlabel('Number of clusters (k)')
-    ax1.set_ylabel('Silhouette Score', color=color)
-    ax1.tick_params(axis='y', labelcolor=color)
+    ax1.set_ylabel('Silhouette Score')
     ax1.set_title("KMeans Clustering: Silhouette Scores")
 
     plt.tight_layout()
@@ -78,21 +82,19 @@ def save_clustered_data(df, labels, output_path):
     df.to_csv(output_path, index=False)
     print(f"Saved clustered data to {output_path}")
 
-def save_models(kmeans_model, scaler, model_dir):
+def save_models(kmeans_model, scaler, imputer, model_dir):
     os.makedirs(model_dir, exist_ok=True)
-    kmeans_path = os.path.join(model_dir, "kmeans_model.joblib")
-    scaler_path = os.path.join(model_dir, "scaler.joblib")
-    joblib.dump(kmeans_model, kmeans_path)
-    joblib.dump(scaler, scaler_path)
-    print(f"Saved KMeans model to {kmeans_path}")
-    print(f"Saved scaler to {scaler_path}")
+    joblib.dump(kmeans_model, os.path.join(model_dir, "kmeans_model.joblib"))
+    joblib.dump(scaler, os.path.join(model_dir, "scaler.joblib"))
+    joblib.dump(imputer, os.path.join(model_dir, "imputer.joblib"))
+    print(f"Saved KMeans model, scaler, and imputer to {model_dir}")
 
 def main(args):
     print("Loading data...")
     df = load_data(args.input_path)
 
-    print("Preprocessing features...")
-    X_scaled, scaler, feature_cols = preprocess_features(df)
+    print("Preprocessing features (imputation + scaling)...")
+    X_scaled, scaler, imputer, feature_cols = preprocess_features(df)
 
     print("Finding best k via silhouette score...")
     best_k, scores = find_best_k(X_scaled, k_range=range(2, args.max_k+1))
@@ -105,7 +107,7 @@ def main(args):
     save_clustered_data(df, labels, args.output_csv)
 
     print("Saving models...")
-    save_models(kmeans, scaler, args.model_dir)
+    save_models(kmeans, scaler, imputer, args.model_dir)
 
     print("Plotting results...")
     plot_elbow_silhouette(scores, args.output_dir)
