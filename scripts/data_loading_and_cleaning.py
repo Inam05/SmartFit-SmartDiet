@@ -1,5 +1,6 @@
 import os
 import glob
+import re
 import pandas as pd
 
 # ===== CONFIG =====
@@ -31,9 +32,27 @@ while len(COLUMNS) < 54:
     COLUMNS.append(f"extra_col_{len(COLUMNS) + 1}")
 
 # ===== FUNCTIONS =====
+def extract_subject_id(filepath):
+    match = re.search(r"subject(\d+)", filepath)
+    if match:
+        return int(match.group(1))
+    else:
+        return None
+
+def extract_session_type(filepath):
+    # Simple heuristic: folder name before filename is session type
+    if "Protocol" in filepath:
+        return "protocol"
+    elif "Optional" in filepath:
+        return "optional"
+    else:
+        return "unknown"
+
 def read_pamap_file(filepath, columns):
     df = pd.read_csv(filepath, sep=" ", header=None, names=columns)
     df = df.dropna(axis=1, how="all")  # Remove completely empty columns
+    df['subject_id'] = extract_subject_id(filepath)
+    df['session_type'] = extract_session_type(filepath)
     return df
 
 def load_and_combine(protocol_path, optional_path, columns):
